@@ -192,11 +192,11 @@ byte LedPanel::getFingerColorIdx(int finger) {
 
 
 /**************************************************************************************************************************
-* IMPORTANT INFO ABOUT ASSEMBLER CODE BELOW, see 'writeLeds_asm()' function.
+* IMPORTANT INFO ABOUT ASSEMBLER CODE BELOW (implemented within 'writeLeds_asm()' function).
 ***************************************************************************************************************************
-* See here how the two WS2812B LED strips are connected. The 2 LED strips make zig zag paths and are intertwined:
-* LED strip 1: Piano key 61, 59, 57, 55, 53, .. ,5, 3, 1     in a down/up/down/up/etc. manner (*)
-* LED strip 2: Paina key 60, 58, 56, 54, 52, .. ,4, 2        in a down/up/down/up/etc. manner (*)
+* See here how the two WS2812B LED strips are connected. The 2 LED strips make zig-zag paths and are intertwined:
+* LED strip 1: Piano key 61, 59, 57, 55, 53, .. ,5, 3, 1     in a down/up/down/up/etc. manner [*]
+* LED strip 2: Piano key 60, 58, 56, 54, 52, .. ,4, 2        in a down/up/down/up/etc. manner [*]
 * How to read the 'drawing' below:
 *  The letters O and X represent the LEDs of LED strip 1 and 2 respectively (5 LEDs for each piano key).
 *  The symbols |-+ describe how all is connected (where + means: the lines cross but are NOT connected)
@@ -205,46 +205,55 @@ byte LedPanel::getFingerColorIdx(int finger) {
 * (only the DATA line of each LED strip is shown; all LEDs are also connected to VCC and GND, of course)
 ***************************************************************************************************************************
 *
-*   1  2  3  (4 ... 45)  46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61   (piano key numbers from left to right) (*)
+*   1   2   3  (4 ... 45)    46  47  48  49  50  51  52  53  54  55  56  57  58  59  60  61   (piano key number, 1=lowest pitch) [*]
 *
-*   |--<--|         etc --<--|     |--<--|     |--<--|     |--<--|
-*   |     |                  |     |     |     |     |     |     |  |----<-- LED-strip 2 data line
-*   |     |      etc --<--|  |  |--+--|  |  |--+--|  |  |--+--|  |  |
-*   |     |               |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |-<-- LED-strip 1 data line
-*   |     |               |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-*   O  X! O               X  O  X  O  X  O  X  O  X  O  X  O  X  O  X  O  
-*   |  |  |               |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-*   O  X  O               X  O  X  O  X  O  X  O  X  O  X  O  X  O  X  O
-*   |  |  |               |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-*   O  X  O               X  O  X  O  X  O  X  O  X  O  X  O  X  O  X  O
-*   |  |  |               |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-*   O  X  O               X  O  X  O  X  O  X  O  X  O  X  O  X  O  X  O
-*   |  |  |               |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-*   O! X  O               X  O  X  O  X  O  X  O  X  O  X  O  X  O  X  O
-*      |  |               |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-*      |  |--<--          |  |--+--|  |  |--+--|  |  |--+--|  |  |--+--|
-*      |                  |     |     |     |     |     |     |     |
-*      |--<--             |--<--|     |--<--|     |--<--|     |--<--|
+*   |---<---|          etc ---<---|       |---<---|       |---<---|       |---<---|
+*   |       |                     |       |       |       |       |       |       |   |-----<-- LED-strip 2 data line
+*   |       |      etc ---<---|   |   |---+---|   |   |---+---|   |   |---+---|   |   |
+*   |       |                 |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |-<-- LED-strip 1 data line
+*   |       |                 |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |
+*   O   X!  O                 X   O   X   O   X   O   X   O   X   O   X   O   X   O   X   O  
+*   |   |   |                 |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |
+*   O   X   O                 X   O   X   O   X   O   X   O   X   O   X   O   X   O   X   O
+*   |   |   |                 |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |
+*   O   X   O                 X   O   X   O   X   O   X   O   X   O   X   O   X   O   X   O
+*   |   |   |                 |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |
+*   O   X   O                 X   O   X   O   X   O   X   O   X   O   X   O   X   O   X   O
+*   |   |   |                 |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |
+*   O!  X   O                 X   O   X   O   X   O   X   O   X   O   X   O   X   O   X   O
+*       |   |                 |   |   |   |   |   |   |   |   |   |   |   |   |   |   |   |
+*       |   |---<---          |   |---+---|   |   |---+---|   |   |---+---|   |   |---+---|
+*       |                     |       |       |       |       |       |       |       |
+*       |---<---              |---<---|       |---<---|       |---<---|       |---<---|
 *
 ***************************************************************************************************************************
-* (*) Piano key numbers for 61-key instrument. A 73-key instrument is also supported (12 more piano keys).
-**************************************************************************************************************************/
+* [*] Piano key numbers for 61-key instrument. A 73-key instrument is also supported (12 more piano keys).
+***************************************************************************************************************************
+* Some design decisions explained:
+* Why do LED strips make a zig-zag path? Because it's easier to connect/assemble the physical LED-panel that way.
+* Why 2 LED-strips instead of one? Because all LEDs can be set in half the time (3 ms instead of 6 ms, for 305 LEDs).
+* Why are the LED strips intertwined? The limited ARM registers (that point to data structures) are better utilized this way. 
+* Why indexed colors? Because the whole LED panel needs much less RAM this way. There's only 32kB for everything including song data.
+* Why assembly code? Because all above together is impossible to implement in C (speed, timing, data look-ups, etc).
+***************************************************************************************************************************/
+
+
 
 
 
 /******************************************************************************************************************************
-* Writes 305 or 365 indexed colors to LED-strip WS2812B           WS2812B LED-strip:  to send 0    : high 0.4us, low 0.85us
-*                                                                                     to send 1    : high 0.8us, low 0.45us
-*                                                                                     to send RESET: low for 50us (minimum)
-* input: _input_for_asm array (8 values of type uint32_t):
-*            _input_for_asm[0]: always 0                                           binary: 00000000000000000000000000000000
-*            _input_for_asm[1]: bitmask of pin that represents LED strip 1         binary: 00000000000000000000100000000000
-*            _input_for_asm[2]: bitmask of pin that represents LED strip 2         binary: 00000000000000000000010000000000
-*            _input_for_asm[3]: bitmask of pin that represents both LED strips     binary: 00000000000000000000110000000000
+* Writes 305 or 365 indexed colors to two LED-strips (WS2812B)              WS2812B:  to send LOW/0  : high 0.4us, low 0.85us
+*                                                                                     to send HIGH/1 : high 0.8us, low 0.45us
+*                                                                                     to send RESET  : low for 50us (minimum)
+* input: _input_for_asm[] array (8 values of type uint32_t):
+*            _input_for_asm[0]: always 0                                              binary: 00000000000000000000000000000000
+*            _input_for_asm[1]: bit-mask of data-pin of LED strip 1         binary (example): 00000000000000000000100000000000
+*            _input_for_asm[2]: bit-mask of data-pin of LED strip 2         binary (example): 00000000000000000000010000000000
+*            _input_for_asm[3]: bit-mask of data-pin of both LED strips     binary (example): 00000000000000000000110000000000
 *            _input_for_asm[4]: pointer to _colorIdx : a byte-array with color-index per LED (305 bytes for 61-key piano)
 *            _input_for_asm[5]: pointer to _colors : an array with all used colors
-*            _input_for_asm[6]: the address to set the LED strip lines LOW (OUTCLR)
-*            _input_for_asm[7]: the address to set the LED strip lines HIGH (OUTSET)
+*            _input_for_asm[6]: I/O address of port to set the LED strip DATA lines LOW (OUTCLR)
+*            _input_for_asm[7]: I/O address of port to set the LED strip DATA lines HIGH (OUTSET)
 * (to correct timing to compensate for missing interrupts: 4 milliseconds for INSTRUMENT_73_KEYS, 3 ms for INSTRUMENT_61_KEYS )
 *******************************************************************************************************************************/
 void LedPanel::writeLeds_asm()
@@ -259,9 +268,9 @@ void LedPanel::writeLeds_asm()
     "MOV  R0, #18              \n"          // set counter R0 to 18 (each iteration writes 4x5 LEDs), that means 18x20=360 LEDs within iteration.
 #endif
     "LSL  R0, R0, #5           \n"
-    "NEG  R0, R0               \n"          // counter R0 is now negative and shifted (= 15 * -32) 
+    "NEG  R0, R0               \n"          // counter R0 is now negative and shifted (R0 = R0 * -32) 
     
-    "LDR  R5, [%[data], #16]   \n"          // R5 = pointer to array of indexed colors (5 for each piano key)
+    "LDR  R5, [%[data], #16]   \n"          // see _input_for_asm[4]. R5 = pointer to array of indexed colors, 1 byte per LED (5 for each piano key)
     "ADD  R5, R5, #200         \n"
 #ifdef INSTRUMENT_61_KEYS
     "ADD  R5, R5, #85          \n"          // (R5+19) now points to last LED. Total LEDs = 305 (= 61 piano keys * 5 LEDs)
@@ -269,13 +278,13 @@ void LedPanel::writeLeds_asm()
 #ifdef  INSTRUMENT_73_KEYS
     "ADD  R5, R5, #145         \n"          // (R5+19) now points to last LED. Total LEDs = 365 (= 73 piano keys * 5 LEDs)
 #endif
-    "LDR  R1, [%[data], #24]   \n"
+    "LDR  R1, [%[data], #24]   \n"          // see _input_for_asm[6]
     "MOV  R10, R1              \n"          // R10 = I/O address to drive lines LOW (addrClr)
 
-    "LDR  R1, [%[data], #28]   \n"
+    "LDR  R1, [%[data], #28]   \n"          // see _input_for_asm[7]
     "MOV  R6, R1               \n"          // R6 = I/O address to drive lines HIGH (addrSet)
 
-    "LDR  R1, [%[data], #20]   \n"
+    "LDR  R1, [%[data], #20]   \n"          // see _input_for_asm[5]
     "MOV  R8, R1               \n"          // R8 = pointer to colors-array (4 bytes for each color)
     
 "mainLoop%=:\n"
@@ -334,9 +343,9 @@ void LedPanel::writeLeds_asm()
     "MOV  R2, #0               \n"
     "BL   writeLED%=           \n"   
     
-    "B   finished%=            \n"     // Finished: all 61x5=305 (or 73x5=365 for 73-key instrument) LEDs written!
+    "B   finished%=            \n"     // Finished: all LEDs written! (305 for 61-key instrument, or 365 for 73-key instrument).
     
-"writeLED%=:\n"                        // looks up two RGB values and writes each of the 24 bits of both to two seperate WS2812B-lines
+"writeLED%=:\n"                        // looks up two RGB values and writes each of the 24 bits of both to two separate WS2812B-lines
     "LSL  R1, R1, #2    \n"            // (line 1) R1 = offset in color table (0, 4, 8, etc)
     "ADD  R1, R1, R8    \n"            // (line 1) R1 = pointer to the right color (4-byte value)
     "LDR  R1, [R1]      \n"            // (line 1) R1 is now 24-bit color (coded as 0xGGRRBB00)
@@ -346,7 +355,7 @@ void LedPanel::writeLeds_asm()
     
     "ADD R0, R0, #24    \n"            // set counter to 24 (for each bit of RGB-color)
 "writeBit%=:\n"  
-    "LDR  R3, [%[data], #12]   \n"     // R3 is pinMask for both lines
+    "LDR  R3, [%[data], #12]   \n"     // see _input_for_asm[3]. R3 is pinMask for both lines
     "STR  R3, [R6]             \n"     // drive both lines HIGH
 
 //    "nop\n"                            /* almost no NOPs needed, because of code below */ 
@@ -367,10 +376,11 @@ void LedPanel::writeLeds_asm()
     "AND  R3, R3, R4         \n"       // R3 is 0 (shifted bit was 1) or 8 (shifted bit was 0)
     "ADD  R3, R3, R9         \n"       // R3 is offset 0, 4, 8 or 12 (to get the right pinMask)
 
-    "LDR  R3, [%[data], R3]  \n"       // R3 = pinMask, for the lines who send 0-bit (must be driven LOW after 0.4us)
+    "LDR  R3, [%[data], R3]  \n"       // R3 = pinMask, for the lines that send 0-bit (must be driven LOW after 0.4us)
+	                                   // see _input_for_asm[x] where x = 0/1/2/3
 
     "MOV  R4, R10            \n"       // R4 = addrClr (I/O address to drive lines low)
-    "STR  R3, [R4]           \n"       // drive lines (only lines who send 0-bit) LOW
+    "STR  R3, [R4]           \n"       // drive lines (only lines that send 0-bit) LOW
     
     "nop\n" "nop\n" "nop\n" "nop\n" "nop\n"     /*  NOPs here to fill up approx. 0.8us */ 
     "nop\n" "nop\n" "nop\n" "nop\n" "nop\n"
@@ -378,7 +388,7 @@ void LedPanel::writeLeds_asm()
  //   "nop\n" "nop\n"
    
     "LDR  R3, [%[data], #12] \n"       // R3 is pinMask for both lines
-    "STR  R3, [R4]           \n"       // drive all lines low (also lines who send 1-bit, this is after approx. 0.8us)
+    "STR  R3, [R4]           \n"       // drive all lines low (also lines that send 1-bit, this is after approx. 0.8us)
 
     "nop\n" "nop\n" "nop\n" "nop\n" "nop\n"     /*  NOPs here to fill up some time */ 
  //   "nop\n" "nop\n"
