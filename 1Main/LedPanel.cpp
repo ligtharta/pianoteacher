@@ -236,7 +236,7 @@ byte LedPanel::getFingerColorIdx(int finger) {
 * Why indexed colors? Because the whole LED panel needs much less RAM this way. There's only 32kB for everything including song data.
 * Why assembly code? Because all above together is impossible to implement in C (speed, timing, data look-ups, etc).
 ***************************************************************************************************************************/
-
+a
 
 
 
