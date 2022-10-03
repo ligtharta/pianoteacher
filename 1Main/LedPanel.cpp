@@ -237,7 +237,7 @@ byte LedPanel::getFingerColorIdx(int finger) {
 * Why assembly code? Because all above together is impossible to implement in C (speed, timing, data look-ups, etc).
 ***************************************************************************************************************************/
 
-
+b
 
 
 
